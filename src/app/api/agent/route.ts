@@ -41,11 +41,18 @@ const factsText = (b: (typeof BRANDS)[number]) =>
 export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: "live_ai_off" }, { status: 503 });
   if (!sameSite(req)) return Response.json({ error: "forbidden" }, { status: 403 });
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  // Use the client IP recorded by Vercel's edge, not the first x-forwarded-for entry (callers can set that).
+  const ip = req.headers.get("x-vercel-forwarded-for") ?? req.headers.get("x-real-ip") ?? "unknown";
   if (rateLimited(ip)) return Response.json({ error: "rate_limited" }, { status: 429 });
-  if (Number(req.headers.get("content-length") ?? 0) > 20_000) return Response.json({ error: "too_large" }, { status: 413 });
+  // Read the body ourselves with a hard cap; a missing or false content-length header can't bypass it.
+  const raw = await req.text();
+  if (raw.length > 20_000) return Response.json({ error: "too_large" }, { status: 413 });
 
-  const parsed = AgentRequest.safeParse(await req.json().catch(() => null));
+  let body: unknown = null;
+  try {
+    body = JSON.parse(raw);
+  } catch {}
+  const parsed = AgentRequest.safeParse(body);
   if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });
   const { brandId, leadType, messages } = parsed.data;
 

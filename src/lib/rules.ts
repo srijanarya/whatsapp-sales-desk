@@ -38,7 +38,7 @@ const NEGATED_SPAN = /\b(not|no|don'?t|do not|nahi|nahin)\s+(asking|looking|need
 // is still checked, so "I can't promise anything, but you'll earn great returns" is blocked.
 const REFUSAL_SPAN = /\b(can'?t|cannot|won'?t|don'?t|do not|unable to|not able to)\s+(\w+\s+){0,2}(promise|guarantee|predict|estimate|commit to|share)(\s+(any|the|you|exact|specific|fixed|future))*(\s+(profits?|returns?|earnings?|income|figures?|numbers?))?\b/g;
 const EARNINGS =
-  /\b(profit|profits|returns?|roi|payback|pay back|break[- ]?even|earn|earning|earnings|income|guarantee[ds]?|guaranteed|munafa|faayda|fayda|kamai|kamayi|recover (my|the|our) (money|investment)|get (my|the) money back in|kitna (milega|kamaunga|bachega))\b/;
+  /\b(profit\w*|returns?|return on investment|roi|payback|pay back|break[- ]?even|earn\w*|income|guarantee[ds]?|guaranteed|recoup\w*|lucrative|make (good |great |a lot of |big |easy )?money|money back in|munafa|faayda|fayda|kamai|kamayi|kamaoge|kamaunga|recover (my|the|our|your) (money|investment)|get (my|the|your) money back in|kitna (milega|kamaunga|bachega))\b/;
 
 const COMPLAINT =
   /\b(scam|fraud|cheat(ed|ing)?|refund|money back|paise wapas|paisa wapas|consumer court|court|lawyer|legal action|police|complaint|complain|useless|worst|pathetic|dhoka|bakwas|harass(ed|ing)?)\b/;

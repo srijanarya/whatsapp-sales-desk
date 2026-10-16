@@ -66,3 +66,15 @@ describe("second security review: refusal and negation spans stay narrow", () =>
     expect(evaluateRules({ ...ctx, message: "I'm not asking for any guarantee, just the investment amount." })?.id ?? "none").toBe("none");
   });
 });
+
+describe("third security review: earnings vocabulary is not exact-word only", () => {
+  it.each([
+    "This outlet is highly profitable.",
+    "You can recoup the investment quickly.",
+    "It's a lucrative opportunity in Nashik.",
+    "You'll make good money here.",
+    "Aap bahut kamaoge!",
+  ])("blocks: %s", (reply) => {
+    expect(checkReply(reply, BANJOS, "").ok).toBe(false);
+  });
+});
