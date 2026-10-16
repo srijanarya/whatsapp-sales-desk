@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, RotateCcw } from "lucide-react";
+import { showConversationOnPhone } from "@/components/desk/leads-table";
 import { Button } from "@/components/ui/button";
 import { SCENARIOS } from "@/lib/data/scenarios";
 import { useDesk } from "@/lib/store";
@@ -28,6 +29,7 @@ export function ScenarioBar() {
     const sc = SCENARIOS.find((s) => s.id === scenarioId)!;
     dispatch({ type: "reset" });
     dispatch({ type: "select_lead", leadId: sc.leadId });
+    showConversationOnPhone();
     sc.steps.forEach((step, i) => {
       timers.current.push(
         setTimeout(() => {

@@ -26,6 +26,20 @@ export const stateLabel: Record<ConversationState, string> = {
   closed: "Closed",
 };
 
+// Short owner chip for the list, so the column fits beside name and keenness at laptop widths.
+const stateChip: Record<ConversationState, { label: string; className: string }> = {
+  ai_talking: { label: "AI", className: "border-blue-400/40 text-blue-400" },
+  waiting: { label: "Needs human", className: "border-alert bg-alert/10 text-alert" },
+  human_talking: { label: "Human", className: "border-success/60 text-success" },
+  closed: { label: "Closed", className: "text-muted-foreground" },
+};
+
+// Below the lg breakpoint the chat sits under the lead list; bring it into view after a selection.
+export function showConversationOnPhone() {
+  if (!window.matchMedia("(max-width: 1023px)").matches) return;
+  setTimeout(() => document.querySelector('section[aria-label="Conversation"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+}
+
 export function LeadsTable() {
   const { state, dispatch } = useDesk();
   const [query, setQuery] = useState("");
@@ -45,7 +59,6 @@ export function LeadsTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Lead</TableHead>
-              <TableHead>Interest</TableHead>
               <TableHead>Keenness</TableHead>
               <TableHead>Owner</TableHead>
             </TableRow>
@@ -59,24 +72,27 @@ export function LeadsTable() {
                   key={lead.id}
                   data-testid="lead-row"
                   data-selected={selected}
-                  onClick={() => dispatch({ type: "select_lead", leadId: lead.id })}
+                  onClick={() => {
+                    dispatch({ type: "select_lead", leadId: lead.id });
+                    showConversationOnPhone();
+                  }}
                   className={cn("cursor-pointer", selected && "bg-primary/10")}
                 >
-                  <TableCell>
+                  <TableCell className="max-w-0 w-full">
                     <div className="flex items-center gap-2">
                       {tempIcon[temperature(lead.score)]}
-                      <div>
-                        <div className="font-medium">{lead.name}</div>
-                        <div className="text-xs text-muted-foreground">{lead.city ?? "City unknown"}</div>
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{lead.name}</div>
+                        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                          {lead.leadType === "founder" ? (
+                            <Badge variant="outline" className="h-4 px-1.5 text-[10px]">Brand founder</Badge>
+                          ) : (
+                            <span className="truncate">{brand?.name}</span>
+                          )}
+                          <span className="shrink-0">· {lead.city ?? "City unknown"}</span>
+                        </div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {lead.leadType === "founder" ? (
-                      <Badge variant="outline">Brand founder</Badge>
-                    ) : (
-                      <span>{brand?.name}</span>
-                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -89,7 +105,14 @@ export function LeadsTable() {
                       <span className="font-mono text-xs text-muted-foreground">{lead.score}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{stateLabel[lead.state]}</TableCell>
+                  <TableCell>
+                    <span
+                      title={stateLabel[lead.state]}
+                      className={cn("whitespace-nowrap rounded-md border px-1.5 py-0.5 text-xs", stateChip[lead.state].className)}
+                    >
+                      {stateChip[lead.state].label}
+                    </span>
+                  </TableCell>
                 </TableRow>
               );
             })}

@@ -88,6 +88,7 @@
 /* Design system from the brief: background #0A0A0F, cards #111118, accent blue #2563EB,
    success #10B981, alert #F59E0B. The app always runs dark. */
 .dark {
+  color-scheme: dark; /* dark scrollbars and native controls (the select, the scrollbars) */
   --background: #0a0a0f;
   --foreground: #ededf2;
   --card: #111118;

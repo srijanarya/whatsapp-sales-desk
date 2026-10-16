@@ -80,23 +80,30 @@ export function Conversation() {
       </div>
 
       {lead.state === "waiting" && (
-        <div data-testid="takeover-banner" role="status" className="flex flex-wrap items-center gap-2 border-b bg-alert/10 px-4 py-2 text-sm text-alert">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="flex-1">
-            Human needed: <strong>{reasonLabel(lead.activeReason)}</strong>
-          </span>
-          <Button size="sm" onClick={() => dispatch({ type: "takeover", leadId: lead.id, at: now() })}>
-            Take over
-          </Button>
-          {lead.activeReason === "ai_unavailable" ? (
-            <Button size="sm" variant="outline" onClick={retry} disabled={!liveAi}>
-              Retry AI
+        <div
+          data-testid="takeover-banner"
+          role="status"
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-alert/10 px-4 py-3 shadow-[inset_3px_0_0_var(--alert)]"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 text-alert" />
+          <div className="min-w-48 flex-1">
+            <div className="text-xs font-medium uppercase tracking-wide text-alert">Human needed</div>
+            <div className="text-sm font-semibold text-foreground">{reasonLabel(lead.activeReason)}</div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button size="sm" onClick={() => dispatch({ type: "takeover", leadId: lead.id, at: now() })}>
+              Take over
             </Button>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => dispatch({ type: "false_alarm", leadId: lead.id, at: now() })}>
-              False alarm
-            </Button>
-          )}
+            {lead.activeReason === "ai_unavailable" ? (
+              <Button size="sm" variant="outline" onClick={retry} disabled={!liveAi}>
+                Retry AI
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => dispatch({ type: "false_alarm", leadId: lead.id, at: now() })}>
+                False alarm
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

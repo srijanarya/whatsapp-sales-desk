@@ -3,9 +3,27 @@
 import { Check, Minus } from "lucide-react";
 import { brandById } from "@/lib/data/brands";
 import { useDesk } from "@/lib/store";
+import type { ActionType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const actorStyle = { ai: "text-primary", human: "text-success", system: "text-alert" } as const;
+// Small text uses blue-400: the brief's #2563EB is too dark to read at 12px on the cards.
+const actorStyle = { ai: "text-blue-400", human: "text-success", system: "text-alert" } as const;
+
+const actionLabel: Record<ActionType, string> = {
+  ai_reply: "replied",
+  ai_qualified: "qualified",
+  trigger: "takeover rule fired",
+  takeover: "took over",
+  human_reply: "replied",
+  hand_back: "handed back to AI",
+  false_alarm: "dismissed a false alarm",
+  sla_alert: "SLA alert",
+  closed: "closed",
+  lead_held: "held (channel paused)",
+  reply_discarded: "reply discarded",
+  reopened: "reopened",
+  ai_unavailable: "AI unavailable",
+};
 
 export function LeadCard() {
   const { state } = useDesk();
@@ -37,7 +55,7 @@ export function LeadCard() {
               {brand.base}
               {brand.outlets ? ` · ${brand.outlets}` : ""}
             </div>
-            <a href={brand.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-primary underline">
+            <a href={brand.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-400 underline">
               Source: public listing, {brand.asOf}
             </a>
           </dl>
@@ -66,7 +84,7 @@ export function LeadCard() {
           {actions.map((a) => (
             <li key={a.id}>
               <span className={cn("uppercase", actorStyle[a.actor])}>{a.actor}</span>{" "}
-              <span className="text-muted-foreground">{a.type.replace("_", " ")}</span> · {a.detail}
+              <span className="text-muted-foreground">{actionLabel[a.type]}</span> · {a.detail}
             </li>
           ))}
         </ol>
