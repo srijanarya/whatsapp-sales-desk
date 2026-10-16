@@ -13,7 +13,7 @@ export default function Home() {
           Brands as publicly listed on scale100x.ai (16 Oct 2026). All leads, conversations and metrics are synthetic.
           No affiliation.
         </p>
-        <main className="grid flex-1 gap-4 p-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
+        <main className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-4 p-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
           <LeadsTable />
           <div className="min-h-[420px] lg:min-h-0">
             <Conversation />
