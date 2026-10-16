@@ -31,8 +31,11 @@ export interface Rule {
 
 const has = (re: RegExp, text: string) => re.test(text.toLowerCase());
 
-// "I'm not asking for any guarantee" should not count as asking for one.
-const NEGATED_EARNINGS = /\b(not|no|don'?t|do not|nahi|nahin)\b[^.?!]{0,25}\b(guarantee|profit|returns?|earnings?)\b/;
+// Lead side: "I'm not asking for any guarantee" is not a request for one, but only that phrase is
+// ignored; the rest of the message is still checked ("not asking for a guarantee, just the profit" fires).
+const NEGATED_SPAN = /\b(not|no|don'?t|do not|nahi|nahin)\b[^.?!,]{0,25}?\b(guarantees?|guaranteed|profits?|returns?|earnings?)\b/g;
+// AI side: only an explicit refusal is exempt. "No doubt you'll get great returns" is NOT a refusal.
+const REFUSAL_SPAN = /\b(can'?t|cannot|won'?t|don'?t|do not|unable to|not able to)\s+(\w+\s+){0,2}(promise|guarantee|predict|estimate|commit to|share)\b[^.?!]*/g;
 const EARNINGS =
   /\b(profit|profits|returns?|roi|payback|pay back|break[- ]?even|earn|earning|earnings|income|guarantee[ds]?|guaranteed|munafa|faayda|fayda|kamai|kamayi|recover (my|the|our) (money|investment)|get (my|the) money back in|kitna (milega|kamaunga|bachega))\b/;
 
@@ -63,7 +66,7 @@ export const RULES: Rule[] = [
     priority: 1,
     label: "Earnings or guarantee question",
     aiMayResume: false,
-    test: (c) => has(EARNINGS, c.message) && !has(NEGATED_EARNINGS, c.message),
+    test: (c) => has(EARNINGS, c.message.toLowerCase().replace(NEGATED_SPAN, " ")),
   },
   {
     id: "t2_complaint",
@@ -89,4 +92,4 @@ export function evaluateRules(c: RuleContext, alreadyFired: TriggerId[] = []): R
 }
 
 // Replies the AI must never send: earnings talk, whatever the model returned.
-export const replyMakesEarningsClaim = (reply: string) => has(EARNINGS, reply) && !has(NEGATED_EARNINGS, reply);
+export const replyMakesEarningsClaim = (reply: string) => has(EARNINGS, reply.toLowerCase().replace(REFUSAL_SPAN, " "));
