@@ -34,6 +34,9 @@ export interface Lead {
   status: LeadStatus;
   score: number; // keenness 0-100
   state: ConversationState;
+  firedTriggers: string[]; // rules are one-shot per issue
+  activeReason: string | null; // why the chat is waiting for / held by a human
+  unansweredCount: number; // AI "let me check" replies
   createdAt: string;
 }
 
@@ -55,7 +58,10 @@ export type ActionType =
   | "false_alarm"
   | "sla_alert"
   | "closed"
-  | "lead_held";
+  | "lead_held"
+  | "reply_discarded"
+  | "reopened"
+  | "ai_unavailable";
 
 export interface Action {
   id: string;
