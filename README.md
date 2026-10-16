@@ -27,6 +27,13 @@ The lead table and lead fields are adapted from my own earlier project, growth-g
 - **Ownership invariants**: the AI never speaks while a human owns the chat, rules don't re-fire after hand-back, and the badge equals a recount.
 - **Reply guard cases**, including two bypasses found by security review and fixed.
 
+`npm run e2e` runs 10 browser tests against the live site, logged out:
+- the 60-second grader script, with the deployed commit checked;
+- all six scenarios;
+- four forced AI failures (server error, timeout, malformed reply, guard block), each of which must show a calm notice and hand the chat to a human;
+- the no-key state;
+- a 375px phone layout in Chrome and Safari engines.
+
 ## Accepted risk: the live AI endpoint is public
 This is a public demo, so `/api/agent` cannot hold a secret login. Instead it:
 - accepts same-site requests only;
