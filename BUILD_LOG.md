@@ -1,6 +1,6 @@
 # Build log
 
-**How this was built.** I direct AI tools rather than writing code by hand: Claude Code as the orchestrator, plus sub-agents for testing and review. I define the problem, make every decision, review, test and correct. This file is the curated log the brief asks for: the exact prompts used, what the AI got wrong, what I fixed, and what I'd do with one more day. A fuller private log and a 32-entry decision log back it up.
+**How this was built.** I direct AI tools rather than writing code by hand: Claude Code as the orchestrator, plus sub-agents for testing and review. I define the problem, make every decision, review, test and correct. This file is the curated log the brief asks for: the exact prompts used, what the AI got wrong, what I fixed, and what I'd do with one more day. A fuller private log and a 43-entry decision log back it up.
 
 ## 1. The prompts that shaped the build
 
