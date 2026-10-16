@@ -25,5 +25,5 @@ export const AgentRequest = z.object({
   leadId: z.string(),
   brandId: z.string().nullable(),
   leadType: z.enum(["investor", "founder"]),
-  messages: z.array(z.object({ sender: z.enum(["lead", "ai", "human", "system"]), body: z.string() })).min(1),
+  messages: z.array(z.object({ sender: z.enum(["lead", "ai", "human", "system"]), body: z.string().max(2000) })).min(1).max(60),
 });

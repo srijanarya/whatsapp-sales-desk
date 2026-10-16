@@ -53,3 +53,16 @@ describe("negation cannot be used to bypass the earnings checks (security review
     expect(r?.id).toBe("t1_earnings");
   });
 });
+
+describe("second security review: refusal and negation spans stay narrow", () => {
+  it("a refusal clause does not shield the rest of the sentence", () => {
+    expect(checkReply("I can't promise anything, but you'll earn great returns.", BANJOS, "").ok).toBe(false);
+    expect(checkReply("I can't promise any returns; our consultant will explain.", BANJOS, "").ok).toBe(true);
+  });
+  it("'not sure about the returns' is still an earnings question", async () => {
+    const { evaluateRules } = await import("@/lib/rules");
+    const ctx = { leadType: "investor" as const, keenness: 50, unansweredCount: 0, qualifiedFields: 1, priorLeadMessages: [] };
+    expect(evaluateRules({ ...ctx, message: "Not sure about the returns, how much will I make?" })?.id).toBe("t1_earnings");
+    expect(evaluateRules({ ...ctx, message: "I'm not asking for any guarantee, just the investment amount." })?.id ?? "none").toBe("none");
+  });
+});

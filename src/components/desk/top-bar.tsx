@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { aiHumanSplit, counters } from "@/lib/metrics";
 import { useDesk } from "@/lib/store";
+import { useLiveAi } from "@/lib/use-live-ai";
 import type { Channel } from "@/lib/types";
 
 const CHANNELS: { id: Channel; label: string }[] = [
@@ -18,14 +18,7 @@ export function TopBar() {
   const { state, dispatch } = useDesk();
   const split = aiHumanSplit(state.actions);
   const count = counters(state.leads, state.messages);
-  const [liveAi, setLiveAi] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then((h) => setLiveAi(Boolean(h.liveAi)))
-      .catch(() => setLiveAi(false));
-  }, []);
+  const liveAi = useLiveAi();
 
   return (
     <header className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b px-4 py-3">

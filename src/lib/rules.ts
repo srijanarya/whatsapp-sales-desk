@@ -31,11 +31,12 @@ export interface Rule {
 
 const has = (re: RegExp, text: string) => re.test(text.toLowerCase());
 
-// Lead side: "I'm not asking for any guarantee" is not a request for one, but only that phrase is
-// ignored; the rest of the message is still checked ("not asking for a guarantee, just the profit" fires).
-const NEGATED_SPAN = /\b(not|no|don'?t|do not|nahi|nahin)\b[^.?!,]{0,25}?\b(guarantees?|guaranteed|profits?|returns?|earnings?)\b/g;
-// AI side: only an explicit refusal is exempt. "No doubt you'll get great returns" is NOT a refusal.
-const REFUSAL_SPAN = /\b(can'?t|cannot|won'?t|don'?t|do not|unable to|not able to)\s+(\w+\s+){0,2}(promise|guarantee|predict|estimate|commit to|share)\b[^.?!]*/g;
+// Lead side: only "not asking/looking for a guarantee"-type phrases are ignored; everything else is checked,
+// so "not asking for a guarantee, just the profit" and "not sure about the returns" both fire.
+const NEGATED_SPAN = /\b(not|no|don'?t|do not|nahi|nahin)\s+(asking|looking|need|needing|want|wanting|expecting|interested)\s+(in\s+|for\s+)?(any\s+|a\s+|the\s+)?(guarantees?|guaranteed|profits?|returns?|earnings?)\b/g;
+// AI side: only the refusal phrase itself is exempt ("can't promise any returns"); the rest of the sentence
+// is still checked, so "I can't promise anything, but you'll earn great returns" is blocked.
+const REFUSAL_SPAN = /\b(can'?t|cannot|won'?t|don'?t|do not|unable to|not able to)\s+(\w+\s+){0,2}(promise|guarantee|predict|estimate|commit to|share)(\s+(any|the|you|exact|specific|fixed|future))*(\s+(profits?|returns?|earnings?|income|figures?|numbers?))?\b/g;
 const EARNINGS =
   /\b(profit|profits|returns?|roi|payback|pay back|break[- ]?even|earn|earning|earnings|income|guarantee[ds]?|guaranteed|munafa|faayda|fayda|kamai|kamayi|recover (my|the|our) (money|investment)|get (my|the) money back in|kitna (milega|kamaunga|bachega))\b/;
 

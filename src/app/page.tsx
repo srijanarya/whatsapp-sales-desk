@@ -1,6 +1,7 @@
 import { Conversation } from "@/components/desk/conversation";
 import { LeadCard } from "@/components/desk/lead-card";
 import { LeadsTable } from "@/components/desk/leads-table";
+import { ScenarioBar } from "@/components/desk/scenario-bar";
 import { TopBar } from "@/components/desk/top-bar";
 import { DeskProvider } from "@/lib/store";
 
@@ -13,6 +14,7 @@ export default function Home() {
           Brands as publicly listed on scale100x.ai (16 Oct 2026). All leads, conversations and metrics are synthetic.
           No affiliation.
         </p>
+        <ScenarioBar />
         <main className="grid flex-1 grid-cols-[minmax(0,1fr)] gap-4 p-4 lg:min-h-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
           <LeadsTable />
           <div className="min-h-[420px] lg:min-h-0">

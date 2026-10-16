@@ -1,14 +1,64 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Bot, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { stateLabel } from "@/components/desk/leads-table";
+import { askAgent } from "@/lib/ask-agent";
+import { deskReducer, reasonLabel } from "@/lib/desk";
 import { useDesk } from "@/lib/store";
+import { useLiveAi } from "@/lib/use-live-ai";
 import { cn } from "@/lib/utils";
 
+const now = () => new Date().toISOString();
+
 export function Conversation() {
-  const { state } = useDesk();
+  const { state, dispatch } = useDesk();
+  const liveAi = useLiveAi();
+  const [leadText, setLeadText] = useState("");
+  const [humanText, setHumanText] = useState("");
+  const [thinking, setThinking] = useState(false);
   const lead = state.leads.find((l) => l.id === state.selectedLeadId);
   const messages = state.messages.filter((m) => m.leadId === state.selectedLeadId);
+  const scroller = useRef<HTMLDivElement>(null);
+  // Keep the newest message in view.
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
+  }, [messages.length, thinking, state.selectedLeadId]);
   if (!lead) return null;
+
+  const sendAsLead = async () => {
+    const body = leadText.trim().slice(0, 600);
+    if (!body) return;
+    setLeadText("");
+    const event = { type: "lead_message" as const, leadId: lead.id, body, at: now() };
+    // Run the same reducer locally to know whether the AI still owns the chat after the rules run.
+    const next = deskReducer(state, event);
+    dispatch(event);
+    const after = next.leads.find((l) => l.id === lead.id)!;
+    if (liveAi && after.state === "ai_talking") {
+      setThinking(true);
+      dispatch(await askAgent(after, next.messages.filter((m) => m.leadId === lead.id)));
+      setThinking(false);
+    }
+  };
+
+  const retry = async () => {
+    dispatch({ type: "false_alarm", leadId: lead.id, at: now() });
+    setThinking(true);
+    dispatch(await askAgent({ ...lead, state: "ai_talking" }, messages));
+    setThinking(false);
+  };
+
+  const sendAsHuman = () => {
+    const body = humanText.trim();
+    if (!body) return;
+    setHumanText("");
+    dispatch({ type: "human_reply", leadId: lead.id, body, at: now() });
+  };
+
+  const isFounder = lead.leadType === "founder";
 
   return (
     <section className="flex h-full flex-col rounded-lg border bg-card" aria-label="Conversation">
@@ -17,11 +67,40 @@ export function Conversation() {
           <div className="font-medium">{lead.name}</div>
           <div className="font-mono text-xs text-muted-foreground">{lead.phone}</div>
         </div>
-        <span data-testid="conversation-state" className="rounded-md border px-2 py-1 text-xs">
+        <span
+          data-testid="conversation-state"
+          className={cn(
+            "rounded-md border px-2 py-1 text-xs",
+            lead.state === "waiting" && "border-alert text-alert",
+            lead.state === "human_talking" && "border-success text-success",
+          )}
+        >
           {stateLabel[lead.state]}
         </span>
       </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-auto p-4" data-testid="messages">
+
+      {lead.state === "waiting" && (
+        <div data-testid="takeover-banner" role="status" className="flex flex-wrap items-center gap-2 border-b bg-alert/10 px-4 py-2 text-sm text-alert">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="flex-1">
+            Human needed: <strong>{reasonLabel(lead.activeReason)}</strong>
+          </span>
+          <Button size="sm" onClick={() => dispatch({ type: "takeover", leadId: lead.id, at: now() })}>
+            Take over
+          </Button>
+          {lead.activeReason === "ai_unavailable" ? (
+            <Button size="sm" variant="outline" onClick={retry} disabled={!liveAi}>
+              Retry AI
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => dispatch({ type: "false_alarm", leadId: lead.id, at: now() })}>
+              False alarm
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div ref={scroller} className="min-h-0 flex-1 space-y-2 overflow-auto p-4" data-testid="messages">
         {messages.map((m) => (
           <div key={m.id} className={cn("flex", m.sender === "lead" ? "justify-start" : "justify-end")}>
             <div
@@ -30,18 +109,54 @@ export function Conversation() {
                 m.sender === "lead" && "bg-muted",
                 m.sender === "ai" && "bg-primary/20",
                 m.sender === "human" && "bg-success/20",
+                m.sender === "system" && "border border-dashed text-muted-foreground",
               )}
             >
               <div className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                {m.sender === "lead" ? lead.name.split(" ")[0] : m.sender === "ai" ? "AI agent" : "Consultant"}
+                {m.sender === "lead" ? lead.name.split(" ")[0] : m.sender === "ai" ? "AI agent" : m.sender === "human" ? "Consultant" : "Auto holding message"}
               </div>
               {m.body}
             </div>
           </div>
         ))}
+        {thinking && <div className="text-right text-xs text-muted-foreground">AI agent is typing…</div>}
       </div>
-      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        Takeover controls and live replies arrive in the next build step.
+
+      <div className="space-y-2 border-t px-4 py-3">
+        {lead.state === "ai_talking" && (
+          <Button size="sm" variant="outline" onClick={() => dispatch({ type: "takeover", leadId: lead.id, at: now() })}>
+            <UserRound className="mr-1 h-4 w-4" /> Take over
+          </Button>
+        )}
+        {lead.state === "human_talking" && (
+          <div className="space-y-2">
+            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); sendAsHuman(); }}>
+              <Input placeholder="Reply as the consultant" value={humanText} onChange={(e) => setHumanText(e.target.value)} />
+              <Button size="sm" type="submit">Send</Button>
+            </form>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled={isFounder} onClick={() => dispatch({ type: "hand_back", leadId: lead.id, at: now() })}
+                title={isFounder ? "Brand founders stay with the partnerships team" : undefined}>
+                <Bot className="mr-1 h-4 w-4" /> Hand back to AI
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => dispatch({ type: "close", leadId: lead.id, outcome: "won", at: now() })}>Close: won</Button>
+              <Button size="sm" variant="outline" onClick={() => dispatch({ type: "close", leadId: lead.id, outcome: "lost", at: now() })}>Close: lost</Button>
+            </div>
+          </div>
+        )}
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); sendAsLead(); }}>
+          <Input
+            data-testid="lead-input"
+            placeholder={`Type as ${lead.name.split(" ")[0]} (the lead) to test the rules`}
+            value={leadText}
+            maxLength={600}
+            onChange={(e) => setLeadText(e.target.value)}
+          />
+          <Button size="sm" variant="secondary" type="submit">Send</Button>
+        </form>
+        <p className="text-[11px] text-muted-foreground">
+          {liveAi ? "Live AI is on: the AI replies to what you type, and the takeover rules check every message." : "Live AI is off: what you type runs through the takeover rules only."}
+        </p>
       </div>
     </section>
   );

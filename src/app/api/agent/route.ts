@@ -9,6 +9,28 @@ import { checkReply } from "@/lib/agent/guard";
 
 export const maxDuration = 30;
 
+// This is a public demo, so the endpoint cannot hold a secret login. It makes abuse harder and
+// caps the damage instead: same-site requests only, a per-visitor rate limit, size caps, and the
+// owner's spend limit in the Anthropic console as the hard ceiling (documented as an accepted risk).
+// ponytail: in-memory limiter is per server instance; move to a shared store (e.g. Upstash) if abused.
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_CALLS = 20;
+const calls = new Map<string, number[]>();
+
+function rateLimited(ip: string) {
+  const t = Date.now();
+  const recent = (calls.get(ip) ?? []).filter((x) => t - x < WINDOW_MS);
+  recent.push(t);
+  calls.set(ip, recent);
+  return recent.length > MAX_CALLS;
+}
+
+function sameSite(req: Request) {
+  const origin = req.headers.get("origin");
+  const host = req.headers.get("host");
+  return Boolean(origin && host && new URL(origin).host === host);
+}
+
 const MODEL = "claude-sonnet-5-5";
 const MAX_MESSAGES = 12;
 const MAX_CHARS = 600;
@@ -18,6 +40,10 @@ const factsText = (b: (typeof BRANDS)[number]) =>
 
 export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return Response.json({ error: "live_ai_off" }, { status: 503 });
+  if (!sameSite(req)) return Response.json({ error: "forbidden" }, { status: 403 });
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (rateLimited(ip)) return Response.json({ error: "rate_limited" }, { status: 429 });
+  if (Number(req.headers.get("content-length") ?? 0) > 20_000) return Response.json({ error: "too_large" }, { status: 413 });
 
   const parsed = AgentRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });

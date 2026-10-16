@@ -66,16 +66,18 @@ export function deskReducer(state: DeskState, e: DeskEvent): DeskState {
   let s = { ...state }; // copy first: the id counter below must never mutate the previous state
   const lead = "leadId" in e ? s.leads.find((l) => l.id === e.leadId) : undefined;
 
-  const id = (p: string) => `${p}${s.seq++}`;
+  const id = (p: string) => `run-${p}${s.seq++}`; // "run-" keeps ids distinct from seed ids (m1, a1, ...)
   const patch = (changes: Partial<Lead>) => {
     s = { ...s, leads: s.leads.map((l) => (l.id === lead!.id ? { ...l, ...changes } : l)) };
   };
   const cur = () => s.leads.find((l) => l.id === lead!.id)!;
   const act = (actor: Actor, type: ActionType, detail: string, at: string, meta?: Action["meta"]) => {
-    s = { ...s, actions: [...s.actions, { id: id("a"), leadId: lead!.id, actor, type, detail, at, meta }] };
+    const actionId = id("a"); // take the id before copying s, or the counter bump is lost
+    s = { ...s, actions: [...s.actions, { id: actionId, leadId: lead!.id, actor, type, detail, at, meta }] };
   };
   const say = (sender: Message["sender"], body: string, at: string) => {
-    s = { ...s, messages: [...s.messages, { id: id("m"), leadId: lead!.id, sender, body, at }] };
+    const messageId = id("m");
+    s = { ...s, messages: [...s.messages, { id: messageId, leadId: lead!.id, sender, body, at }] };
   };
   const trigger = (rule: TriggerId, at: string, via: "code" | "model") => {
     const l = cur();
@@ -126,7 +128,7 @@ export function deskReducer(state: DeskState, e: DeskEvent): DeskState {
     }
     case "ai_reply": {
       if (lead.state !== "ai_talking") {
-        act("system", "reply_discarded", "Late AI reply discarded: a human owns this chat", e.at);
+        act("system", "reply_discarded", "Late AI reply discarded: the chat had already gone to a human", e.at);
         return s;
       }
       if (replyMakesEarningsClaim(e.body)) {

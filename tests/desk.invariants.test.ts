@@ -93,6 +93,16 @@ describe("ownership invariants", () => {
     expect(s.actions.filter((a) => a.leadId === "l3" && a.type === "sla_alert")).toHaveLength(1);
   });
 
+  it("every message and action id is unique (React keys)", () => {
+    const s = run([
+      { type: "lead_message", leadId: "l1", body: "Hello", at: T },
+      { type: "ai_reply", leadId: "l1", body: "Hi!", at: T },
+      { type: "lead_message", leadId: "l1", body: "Call me", at: T },
+    ]);
+    const ids = [...s.messages.map((m) => m.id), ...s.actions.map((a) => a.id)];
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("the reducer never mutates the previous state", () => {
     const start = initialState();
     const frozen = JSON.stringify(start);
