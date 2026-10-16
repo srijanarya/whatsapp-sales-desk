@@ -17,7 +17,7 @@ A working prototype of one screen from a franchise-growth sales system. AI agent
 - **No real integrations:** WhatsApp, Meta Ads, telephony and CRM connections are out of scope. Data lives in the page and resets on refresh.
 
 ## How it was built
-I direct AI tools (Claude Code) rather than writing code by hand. I make the decisions, review and test. The build log covers my instructions, the prompts used, what the AI got wrong, and what I fixed.
+I direct AI tools (Claude Code) rather than writing code by hand. I make the decisions, review and test. [BUILD_LOG.md](BUILD_LOG.md) covers the prompts used, what the AI got wrong, what I fixed, and what I'd do with one more day.
 
 The lead table and lead fields are adapted from my own earlier project, growth-gap-fund. UI components are shadcn/ui (MIT).
 
