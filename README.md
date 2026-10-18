@@ -45,10 +45,12 @@ The lead table and lead fields are adapted from my own earlier project, growth-g
 - the no-key state;
 - a 375px phone layout in Chrome and Safari engines.
 
-`npm run e2e:live` runs 2 browser tests against a local server, with Meta's Graph API and Claude replaced by a local mock. Nothing is sent to Meta. They cover:
+`npm run e2e:live` runs 4 browser tests against a local server, with Meta's Graph API and Claude replaced by a local mock. Nothing is sent to Meta. They cover:
 - a signed inbound message, the AI reply sent through the Cloud API, a takeover rule firing, and the consultant's reply sent;
 - a Meta retry stored once, and the state surviving a refresh;
-- `/live` and its API locked without the password, while `/` stays open.
+- `/live` and its API locked without the password, while `/` stays open;
+- the sign-in page letting a browser in with the right password only;
+- cross-site POSTs to the live API refused.
 
 ## Accepted risk: the live AI endpoint is public
 This is a public demo, so `/api/agent` cannot hold a secret login. Instead it:
@@ -75,7 +77,8 @@ npm run dev
 | `src/app/api/live/route.ts` | Live desk API: state, and the consultant actions allowed from the browser |
 | `src/lib/whatsapp.ts` | Signature check, inbound mapping, Cloud API send |
 | `src/lib/live-store.ts` | Event log in Redis, fold, outbound diff, dedupe |
-| `src/proxy.ts` | Password on `/live` and `/api/live` |
+| `src/proxy.ts` | Password on `/live` and `/api/live`: sign-in page with an HttpOnly session cookie, or Basic auth for scripts |
+| `src/app/login/page.tsx` | Live desk sign-in page |
 | `WHATSAPP_SETUP.md` | Meta app, token, webhook and Vercel env steps |
 | `src/lib/rules.ts` | The 8 takeover rules, one object each. Add a rule here |
 | `src/lib/desk.ts` | Conversation ownership as a pure reducer (ai_talking, waiting, human_talking, closed) |

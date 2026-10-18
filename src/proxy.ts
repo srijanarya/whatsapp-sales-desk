@@ -1,19 +1,19 @@
 // The live desk shows real customers' phone numbers and messages, so it sits behind a password.
-// HTTP Basic auth (any username), password from LIVE_DESK_PASSWORD. Unset password = locked.
+// Browser: sign in at /login (HttpOnly session cookie). Scripts and tests: HTTP Basic auth, any username.
+// LIVE_DESK_PASSWORD unset = locked.
 import { NextResponse, type NextRequest } from "next/server";
+import { COOKIE, passwordMatches, validSession } from "@/lib/desk-session";
 
 export function proxy(req: NextRequest) {
-  const password = process.env.LIVE_DESK_PASSWORD;
+  if (validSession(req.cookies.get(COOKIE)?.value)) return NextResponse.next();
   const [scheme, encoded] = (req.headers.get("authorization") ?? "").split(" ");
   let given: string | null = null;
   try {
     if (scheme === "Basic" && encoded) given = atob(encoded).split(":").slice(1).join(":");
   } catch {} // malformed header = no password
-  if (password && given === password) return NextResponse.next();
-  return new NextResponse(password ? "Password required" : "Live desk is locked: LIVE_DESK_PASSWORD is not set", {
-    status: 401,
-    headers: password ? { "www-authenticate": 'Basic realm="Live sales desk"' } : {},
-  });
+  if (given !== null && passwordMatches(given)) return NextResponse.next();
+  if (req.nextUrl.pathname.startsWith("/api/")) return Response.json({ error: "login_required" }, { status: 401 });
+  return NextResponse.redirect(new URL("/login", req.url));
 }
 
 export const config = { matcher: ["/live", "/live/:path*", "/api/live", "/api/live/:path*"] };

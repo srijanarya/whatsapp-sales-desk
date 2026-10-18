@@ -6,7 +6,8 @@ const MOCK = "http://127.0.0.1:4010";
 export default defineConfig({
   testDir: "e2e-live",
   timeout: 90_000,
-  use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3108", httpCredentials: { username: "desk", password: "e2e-password" } },
+  use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:3108", // Basic auth sent up front (the desk redirects to /login instead of issuing a 401 challenge).
+    extraHTTPHeaders: { authorization: `Basic ${Buffer.from("desk:e2e-password").toString("base64")}` } },
   webServer: {
     command: "npx next build && npx next start --port 3108", // production build: closest to Vercel, no dev reloads
     url: "http://localhost:3108/api/health",

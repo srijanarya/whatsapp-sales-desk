@@ -81,10 +81,24 @@ test("live WhatsApp: AI reply, takeover rule, consultant reply all go out throug
 });
 
 test("live desk and its API are locked without the password", async ({ browser, baseURL }) => {
-  const ctx = await browser.newContext({ baseURL, httpCredentials: { username: "x", password: "wrong" } });
+  const ctx = await browser.newContext({ baseURL, extraHTTPHeaders: { authorization: `Basic ${Buffer.from("x:wrong").toString("base64")}` } });
   expect((await ctx.request.get("/api/live")).status()).toBe(401);
-  expect((await ctx.request.get("/live")).status()).toBe(401);
+  expect((await ctx.request.get("/live", { maxRedirects: 0 })).headers()["location"]).toContain("/login");
   expect((await ctx.request.get("/")).status()).toBe(200); // the public demo stays open
+  await ctx.close();
+});
+
+test("the sign-in page lets a browser in with the desk password, and only with it", async ({ browser, baseURL }) => {
+  const ctx = await browser.newContext({ baseURL, extraHTTPHeaders: {} }); // no Basic auth: a real browser
+  const page = await ctx.newPage();
+  await page.goto("/live");
+  await expect(page).toHaveURL(/\/login/);
+  await page.getByLabel("Desk password").fill("wrong");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByText("Wrong password. Try again.")).toBeVisible();
+  await page.getByLabel("Desk password").fill("e2e-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByTestId("live-banner")).toBeVisible();
   await ctx.close();
 });
 
