@@ -74,3 +74,17 @@ describe("live desk events", () => {
     expect(windowOpen(undefined, now)).toBe(false);
   });
 });
+
+describe("live desk session cookie", async () => {
+  const { sessionValue, validSession, MAX_AGE } = await import("@/lib/desk-session");
+  const now = Date.parse("2026-10-19T00:00:00Z");
+  it("accepts a fresh session, rejects expired, forged, other-password and empty ones", () => {
+    const v = sessionValue("pw-A", now);
+    expect(validSession(v, "pw-A", now + 1000)).toBe(true);
+    expect(validSession(v, "pw-A", now + (MAX_AGE + 1) * 1000)).toBe(false);
+    expect(validSession(v, "pw-B", now)).toBe(false);
+    expect(validSession(v.replace(/^\d+/, String(now / 1000 + 999)), "pw-A", now + 1000_000)).toBe(false);
+    expect(validSession(v, undefined, now)).toBe(false);
+    expect(validSession(undefined, "pw-A", now)).toBe(false);
+  });
+});

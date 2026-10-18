@@ -32,7 +32,7 @@ I direct AI tools (Claude Code) rather than writing code by hand. I make the dec
 The lead table and lead fields are adapted from my own earlier project, growth-gap-fund. UI components are shadcn/ui (MIT).
 
 ## Tests
-`npm test` runs 65 checks:
+`npm test` runs 66 checks:
 - **39 golden rule cases**, written by a separate agent from the design text before the rules existed. The code-checkable ones must pass, and the rest are reported.
 - **Ownership invariants**: the AI never speaks while a human owns the chat, rules don't re-fire after hand-back, and the badge equals a recount.
 - **Reply guard cases**, including two bypasses found by security review and fixed.
