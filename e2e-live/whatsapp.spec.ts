@@ -87,3 +87,9 @@ test("live desk and its API are locked without the password", async ({ browser, 
   expect((await ctx.request.get("/")).status()).toBe(200); // the public demo stays open
   await ctx.close();
 });
+
+test("a cross-site POST to the live API is refused even with the password (CSRF)", async ({ request }) => {
+  const post = (headers: Record<string, string>) => request.post("/api/live", { data: JSON.stringify({ type: "toggle_channel", channel: "email" }), headers });
+  expect((await post({ "content-type": "application/json", origin: "https://evil.example" })).status()).toBe(403);
+  expect((await post({ "content-type": "text/plain", origin: "http://localhost:3108" })).status()).toBe(403);
+});

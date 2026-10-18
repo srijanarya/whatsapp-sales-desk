@@ -22,7 +22,21 @@ export async function GET() {
   return Response.json({ state: await loadState(), whatsapp: Boolean(process.env.WA_PHONE_NUMBER_ID && process.env.WA_ACCESS_TOKEN) });
 }
 
+// Basic auth is re-sent by the browser on cross-site requests, so a POST must also prove it came
+// from this site (CSRF): same Origin as Host, and a JSON body (a plain HTML form can't send one).
+function sameOriginJson(req: Request) {
+  const origin = req.headers.get("origin");
+  const host = req.headers.get("host");
+  const json = (req.headers.get("content-type") ?? "").startsWith("application/json");
+  try {
+    return json && Boolean(origin && host) && new URL(origin!).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
+  if (!sameOriginJson(req)) return Response.json({ error: "forbidden" }, { status: 403 });
   if (!storeConfigured()) return Response.json({ error: "store_not_configured" }, { status: 503 });
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "bad_request" }, { status: 400 });
