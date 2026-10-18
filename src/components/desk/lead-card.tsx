@@ -23,6 +23,8 @@ const actionLabel: Record<ActionType, string> = {
   reply_discarded: "reply discarded",
   reopened: "reopened",
   ai_unavailable: "AI unavailable",
+  lead_created: "new WhatsApp enquiry",
+  send_failed: "WhatsApp send failed",
 };
 
 export function LeadCard() {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { stateLabel } from "@/components/desk/leads-table";
 import { askAgent } from "@/lib/ask-agent";
-import { deskReducer, reasonLabel } from "@/lib/desk";
+import { deskReducer, reasonLabel, windowOpen } from "@/lib/desk";
 import { useDesk } from "@/lib/store";
 import { useLiveAi } from "@/lib/use-live-ai";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const now = () => new Date().toISOString();
 
 export function Conversation() {
-  const { state, dispatch } = useDesk();
+  const { state, dispatch, live } = useDesk();
   const liveAi = useLiveAi();
   const [leadText, setLeadText] = useState("");
   const [humanText, setHumanText] = useState("");
@@ -26,7 +26,16 @@ export function Conversation() {
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
   }, [messages.length, thinking, state.selectedLeadId]);
-  if (!lead) return null;
+  if (!lead)
+    return live ? (
+      <section className="flex h-full items-center justify-center rounded-lg border bg-card p-6 text-sm text-muted-foreground" aria-label="Conversation">
+        No WhatsApp enquiries yet. Message the test number from a registered phone.
+      </section>
+    ) : null;
+  // Live only: a human reply can go out only inside WhatsApp's 24-hour customer-service window.
+  const windowClosed = Boolean(live) && !windowOpen(messages.findLast((m) => m.sender === "lead")?.at);
+  const lastAction = state.actions.findLast((a) => a.leadId === lead.id);
+  const notice = live?.error ?? (lastAction?.type === "send_failed" ? lastAction.detail : null);
 
   const sendAsLead = async () => {
     const body = leadText.trim().slice(0, 600);
@@ -45,6 +54,7 @@ export function Conversation() {
   };
 
   const retry = async () => {
+    if (live) return live.retryAi(lead.id);
     dispatch({ type: "false_alarm", leadId: lead.id, at: now() });
     setThinking(true);
     dispatch(await askAgent({ ...lead, state: "ai_talking" }, messages));
@@ -95,7 +105,7 @@ export function Conversation() {
               Take over
             </Button>
             {lead.activeReason === "ai_unavailable" ? (
-              <Button size="sm" variant="outline" onClick={retry} disabled={!liveAi}>
+              <Button size="sm" variant="outline" onClick={retry} disabled={!liveAi && !live}>
                 Retry AI
               </Button>
             ) : (
@@ -130,6 +140,17 @@ export function Conversation() {
       </div>
 
       <div className="space-y-2 border-t px-4 py-3">
+        {notice && (
+          <p data-testid="live-notice" role="alert" className="rounded-md border border-alert bg-alert/10 px-3 py-2 text-xs text-alert">
+            {notice}
+          </p>
+        )}
+        {windowClosed && lead.state !== "closed" && (
+          <p data-testid="window-notice" className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
+            Outside WhatsApp&apos;s 24-hour window: the lead last wrote more than 24 hours ago, so a free-form reply can&apos;t be
+            sent. It reopens when they write again. (Template messages are not set up.)
+          </p>
+        )}
         {lead.state === "ai_talking" && (
           <Button size="sm" variant="outline" onClick={() => dispatch({ type: "takeover", leadId: lead.id, at: now() })}>
             <UserRound className="mr-1 h-4 w-4" /> Take over
@@ -138,8 +159,8 @@ export function Conversation() {
         {lead.state === "human_talking" && (
           <div className="space-y-2">
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); sendAsHuman(); }}>
-              <Input placeholder="Reply as the consultant" value={humanText} onChange={(e) => setHumanText(e.target.value)} />
-              <Button size="sm" type="submit">Send</Button>
+              <Input data-testid="human-input" placeholder={live ? "Reply on WhatsApp as the consultant" : "Reply as the consultant"} value={humanText} onChange={(e) => setHumanText(e.target.value)} disabled={windowClosed} />
+              <Button size="sm" type="submit" disabled={windowClosed}>Send</Button>
             </form>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" disabled={isFounder} onClick={() => dispatch({ type: "hand_back", leadId: lead.id, at: now() })}
@@ -151,6 +172,12 @@ export function Conversation() {
             </div>
           </div>
         )}
+        {live ? (
+          <p className="text-[11px] text-muted-foreground">
+            Live WhatsApp{live.whatsapp ? "" : " (sending is not configured)"}: the AI and the takeover rules answer real messages on the
+            server. Replies you send here go to {lead.phone}.
+          </p>
+        ) : (<>
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); sendAsLead(); }}>
           <Input
             data-testid="lead-input"
@@ -164,6 +191,7 @@ export function Conversation() {
         <p className="text-[11px] text-muted-foreground">
           {liveAi ? "Live AI is on: the AI replies to what you type, and the takeover rules check every message." : "Live AI is off: what you type runs through the takeover rules only."}
         </p>
+        </>)}
       </div>
     </section>
   );

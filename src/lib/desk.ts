@@ -40,7 +40,10 @@ export type DeskEvent =
   | { type: "false_alarm"; leadId: string; at: string }
   | { type: "sla_expire"; leadId: string; at: string }
   | { type: "close"; leadId: string; outcome: "won" | "lost"; at: string }
-  | { type: "lead_held"; leadId: string; channel: Channel; at: string };
+  | { type: "lead_held"; leadId: string; channel: Channel; at: string }
+  // Live WhatsApp only: a new contact wrote in, or a message could not be delivered.
+  | { type: "lead_created"; leadId: string; name: string; phone: string; at: string }
+  | { type: "send_failed"; leadId: string; detail: string; at: string };
 
 export const HOLDING_MESSAGE = "Thanks for waiting. A consultant will reply here shortly.";
 // t1 (earnings) and t2 (complaint) fire every time; the rest are one-shot per issue.
@@ -55,6 +58,15 @@ export const initialState = (): DeskState => ({
   heldLeads: 0,
   seq: 1,
 });
+
+// Live desk: no synthetic data; leads appear as real people write in.
+export const liveInitialState = (): DeskState => ({ ...initialState(), leads: [], messages: [], actions: [], selectedLeadId: "" });
+
+// WhatsApp allows free-form replies only within 24 hours of the customer's last message.
+// Lives here (not in whatsapp.ts) because the browser needs it too, without node:crypto.
+export const WINDOW_MS = 24 * 60 * 60 * 1000;
+export const windowOpen = (lastInboundAt: string | undefined, now = Date.now()) =>
+  Boolean(lastInboundAt) && now - Date.parse(lastInboundAt!) < WINDOW_MS;
 
 export const qualifiedFields = (l: Lead) =>
   [l.city, l.budgetLakh, l.timeline, l.hasSpace, l.experience].filter((v) => v !== null && v !== undefined).length;
@@ -111,6 +123,17 @@ export function deskReducer(state: DeskState, e: DeskEvent): DeskState {
     }
     case "reset":
       return initialState();
+    case "lead_created": {
+      if (s.leads.some((l) => l.id === e.leadId)) return s;
+      const l: Lead = {
+        id: e.leadId, name: e.name, phone: e.phone, leadType: "investor", brandId: null, channel: "whatsapp",
+        city: null, budgetLakh: null, timeline: null, hasSpace: null, experience: null, status: "new", score: 50,
+        state: "ai_talking", firedTriggers: [], activeReason: null, unansweredCount: 0, createdAt: e.at,
+      };
+      const actionId = id("a"); // before copying s, same as act()
+      s = { ...s, leads: [l, ...s.leads], selectedLeadId: s.selectedLeadId || l.id, actions: [...s.actions, { id: actionId, leadId: l.id, actor: "system", type: "lead_created", detail: "New WhatsApp enquiry", at: e.at }] };
+      return s;
+    }
   }
 
   if (!lead) return state;
@@ -195,6 +218,10 @@ export function deskReducer(state: DeskState, e: DeskEvent): DeskState {
       if (lead.state === "closed") return s;
       patch({ state: "closed", status: e.outcome, activeReason: null });
       act("human", "closed", e.outcome === "won" ? "Won" : "Lost", e.at);
+      return s;
+    }
+    case "send_failed": {
+      act("system", "send_failed", e.detail, e.at);
       return s;
     }
     case "lead_held": {

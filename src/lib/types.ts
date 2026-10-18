@@ -61,7 +61,9 @@ export type ActionType =
   | "lead_held"
   | "reply_discarded"
   | "reopened"
-  | "ai_unavailable";
+  | "ai_unavailable"
+  | "lead_created"
+  | "send_failed";
 
 export interface Action {
   id: string;
